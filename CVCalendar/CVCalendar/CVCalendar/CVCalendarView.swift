@@ -30,6 +30,7 @@ class CVCalendarView: UIView {
         self.collectionView.backgroundColor = UIColor.clear
         self.collectionView.delegate = self
         self.collectionView.dataSource = self
+        self.collectionView.showsHorizontalScrollIndicator = false
         self.collectionView.register(CVCalendarCell.self, forCellWithReuseIdentifier: "CVCalendarCell")
         self.addSubview(self.collectionView)
     }
