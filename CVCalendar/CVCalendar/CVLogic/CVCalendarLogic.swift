@@ -7,13 +7,53 @@
 //
 
 import Foundation
+
+/// 获取当前日历
+fileprivate let CurrentCalendar = Calendar(identifier: Calendar.Identifier.gregorian) // 公历日历
+
 struct CVCalendarLogic {
     
+    /// 日历的开始日期
+    var startDate: Date
+    /// 日历的结束日期
+    var endDate: Date
+    
+    init(startDate: Date, endDate: Date) {
+        self.startDate = startDate
+        self.endDate = endDate
+    }
+
+    /// 返回总共有多少个月份，即：多少个section
+    func numberOfMonths() -> Int {
+        // 判断两个日期之间跨越几个月份，需要从开始日期的1号，到结束日期的1号，否则会计算错误，跨越并不是相差月份
+        return Date.monthsBetween(from: self.startDate.startOfMonth(), to: self.endDate.startOfMonth())
+    }
+    
+    /// 返回某个月份有多少个日期（包含上月余，本月，下月初）
+    func numberOfItems(in month: Date) -> Int {
+        return self.numberOfRows(in: month) * 7 // 总item个数
+    }
+    
+    /// 返回某个月份需要显示多少行
+    func numberOfRows(in month: Date) -> Int {
+        let headPlace = self.headPlaceForMonth(month)  // 1号之前有多少天
+        let daysOfMonth = month.daysInThisMonth()   // 这个月有多少天
+        let headDayCount = daysOfMonth + headPlace
+        let rowCount = headDayCount / 7 + (headDayCount % 7 > 0 ? 1 : 0)  // 总行数
+        return rowCount
+    }    
+    
+    /// 获取每个月1号之前需要显示上个月的日期的天数
+    func headPlaceForMonth(_ month: Date) -> Int {
+        let weekDay = month.weekForFirstDayInMonth() // 这个月的第一天是周几
+        let headPlaceholders = (weekDay.weekday - CurrentCalendar.firstWeekday + 7) % 7
+        return headPlaceholders
+    }
 }
 
 extension CVCalendarLogic {
     // MARK: - 根据公历的年月日 -> 转换成农历
-    func lunar(year: Int, month: Int, day: Int) -> String {
+    static func lunar(year: Int, month: Int, day: Int) -> String {
         
         let solar = CVSolar(year: year, month: month, day: day)
         let lunar = CVLunarSolarConverter.solarToLunar(solar: solar)
@@ -41,7 +81,7 @@ extension CVCalendarLogic {
     
     // MARK: - 以下是系统方法获取农历，据说有问题，但是没发现过
     /// 返回 农历(2017丁酉年闰六月初二星期一)
-    func lunar(date: Date) -> String {
+    static func lunar(date: Date) -> String {
         // 设置农历日历
         let chinese = Calendar(identifier: .chinese)
         let formatter = DateFormatter()
@@ -53,8 +93,20 @@ extension CVCalendarLogic {
         let lunar = formatter.string(from: date)
         return lunar
     }
+    
+    /// 返回 农历是否是闰月
+    static func lunar_isleep(date: Date) -> Bool {
+        // 设置农历日历
+        let chinese = Calendar(identifier: .chinese)
+        let componment = chinese.dateComponents([.year, .month], from: date)
+        if let isLeap = componment.isLeapMonth, isLeap == true {
+            return true
+        }
+        return false
+    }
+    
     /// 返回农历的年(丁酉年)
-    func lunar_year(date: Date) -> String {
+    static func lunar_year(date: Date) -> String {
         let chineseYear = ["甲子年", "乙丑年", "丙寅年", "丁卯年", "戊辰年", "己巳年", "庚午年", "辛未年", "壬申年", "癸酉年",
                            "甲戌年", "乙亥年", "丙子年", "丁丑年", "戊寅年", "己卯年", "庚辰年", "辛己年", "壬午年", "癸未年",
                            "甲申年", "乙酉年", "丙戌年", "丁亥年", "戊子年", "己丑年", "庚寅年", "辛卯年", "壬辰年", "癸巳年",
@@ -66,8 +118,9 @@ extension CVCalendarLogic {
         let componment = chinese.dateComponents([.year], from: date)
         return chineseYear[componment.year! - 1]
     }
+    
     /// 返回农历的月(闰六月)
-    func lunar_month(date: Date) -> String {
+    static func lunar_month(date: Date) -> String {
         let chineseMonth = ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月",
                             "九月", "十月", "十一月", "腊月"]
         // 设置农历日历
@@ -78,8 +131,9 @@ extension CVCalendarLogic {
         }
         return chineseMonth[componment.month! - 1]
     }
+    
     /// 返回农历的日(初二)
-    func lunar_day(date: Date) -> String {
+    static func lunar_day(date: Date) -> String {
         let chineseDay = ["初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
                           "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
                           "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"]
@@ -90,7 +144,7 @@ extension CVCalendarLogic {
     }
     
     // MARK: - 计算节日、节气
-    func lunar_festival(date: Date) -> String {
+    static func lunar_festival(date: Date) -> String {
         let lunar_month = self.lunar_month(date: date)
         let lunar_day = self.lunar_day(date: date)
         var result = ""
@@ -123,7 +177,7 @@ extension CVCalendarLogic {
     }
     
     /// 公历节日
-    func solar_holiday(date: Date) -> String {
+    static func solar_holiday(date: Date) -> String {
         var result = ""
         if date.month == 1 && date.day == 1 {
             result = "元旦"
@@ -152,23 +206,23 @@ extension CVCalendarLogic {
     }
     
     /// 二十四节气
-    func twentyFourSolarTerm(date: Date) -> String {
+    static func twentyFourSolarTerm(date: Date) -> String {
         // 24节气只有(1901 - 2050)之间为准确的节气
         /* 定气法计算二十四节气,二十四节气是按地球公转来计算的，并非是阴历计算的 */
         let solarTerm = ["小寒", "大寒", "立春", "雨水", "惊蛰", "春分", "清明", "谷雨", "立夏", "小满", "芒种", "夏至", "小暑", "大暑", "立秋", "处暑", "白露", "秋分", "寒露", "霜降", "立冬", "小雪", "大雪", "冬至"]
         let solarTermInfo = [0, 21208, 42467, 63836, 85337, 107014, 128867, 150921, 173149, 195551, 218072, 240693, 263343, 285989, 308563, 331033, 353350, 375494, 397447, 419210, 440795, 462224, 483532, 504758]
         
         let formater = DateFormatter()
-        formater.dateFormat = "yyyy-MM-dd"
-        let baseDateAndTime = formater.date(from: "1900-01-06 02:05:00")!
-    
+        formater.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let baseDateAndTime = formater.date(from: "1900-01-06 02:05:00")
+        guard baseDateAndTime != nil else { return "" }
         var newDate: Date!
         var num = 0.0
         var result = ""
         let year = date.year        // ??? 确定这里不需要换算成农历后在进行计算比较？？
         for i in 1...24 {
             num = 525948.76 * Double(year - 1900) + Double(solarTermInfo[i - 1])
-            newDate = baseDateAndTime.addingTimeInterval(num * 60) // 按分钟计算
+            newDate = baseDateAndTime!.addingTimeInterval(num * 60) // 按分钟计算
             if newDate.month == date.month && newDate.day == date.day {
                 result = solarTerm[i - 1];
                 break;
@@ -180,7 +234,7 @@ extension CVCalendarLogic {
     
     // MARK: - 星座 & 属相
     /// 星座
-    func constellationName(date: Date) -> String {
+    static func constellationName(date: Date) -> String {
         let constellations = ["白羊座", "金牛座", "双子座", "巨蟹座", "狮子座", "处女座", "天秤座", "天蝎座", "射手座", "摩羯座", "水瓶座", "双鱼座"]
         var index = 0;
         let year = date.month * 100 + date.day;
@@ -203,7 +257,7 @@ extension CVCalendarLogic {
     }
     
     /// 生肖属相
-    func animal(date: Date) -> String {
+    static func animal(date: Date) -> String {
         let animals = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"]
         let animalStartYear = 1900 // 1900年为鼠年
         let offset = date.year - animalStartYear
@@ -212,12 +266,12 @@ extension CVCalendarLogic {
     
     // MARK: - 天干地支
     /// 取农历天干地支表示年月日（甲子年乙丑月丙庚日）
-    func gan_zhi(date: Date) -> String {
+    static func gan_zhi(date: Date) -> String {
         return self.gan_zhi_year(date: date) + self.gan_zhi_month(date: date) + self.gan_zhi_day(date: date)
     }
     
     /// 取农历年的干支表示法（乙丑年）
-    func gan_zhi_year(date: Date) -> String {
+    static func gan_zhi_year(date: Date) -> String {
         let ganZhiStartYear = 1864 // 干支计算起始年
         // 换算农历日历
         let solar = CVSolar(year: date.year, month: date.month, day: date.day)
@@ -229,7 +283,7 @@ extension CVCalendarLogic {
     }
     
     /// 取干支的月表示字符串（乙丑月），注意农历的闰月不记干支
-    func gan_zhi_month(date: Date) -> String {
+    static func gan_zhi_month(date: Date) -> String {
         var zhiIndex: Int!
         // 换算农历日历
         let solar = CVSolar(year: date.year, month: date.month, day: date.day)
@@ -275,7 +329,7 @@ extension CVCalendarLogic {
     }
     
     /// 取干支日表示法（丙庚日）
-    func gan_zhi_day(date: Date) -> String {
+    static func gan_zhi_day(date: Date) -> String {
         // 换算农历日历
         let solar: CVSolar = CVSolar(year: date.year, month: date.month, day: date.day)
         let lunar: CVLunar = CVLunarSolarConverter.solarToLunar(solar: solar)

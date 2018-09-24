@@ -15,7 +15,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+
+        //创建两个日期
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        let startDate = f.date(from: "2018-09-01")!;
+        let endDate = f.date(from: "2019-01-02")!;
+        
+        //利用NSCalendar比较日期的差异
+        /**
+         * 要比较的时间单位,常用如下,可以同时传：
+         *    NSCalendarUnitDay : 天
+         *    NSCalendarUnitYear : 年
+         *    NSCalendarUnitMonth : 月
+         *    NSCalendarUnitHour : 时
+         *    NSCalendarUnitMinute : 分
+         *    NSCalendarUnitSecond : 秒
+         */
+//        NSCalendarUnit unit = NSCalendarUnitDay;//只比较天数差异
+        //比较的结果是NSDateComponents类对象
+        let delta = Calendar.current.dateComponents([.month], from: startDate, to: endDate)
+        //打印
+        print(delta);
+        //获取其中的"天"
+        print( delta.month);
+    
+
+
         return true
     }
 
