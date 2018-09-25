@@ -127,7 +127,7 @@ class CVCalendarView: UIView {
         self.logic = CVCalendarLogic(startDate: self.startDate!, endDate: self.endDate!)
         
         self.currMonth = self.selectedDate ?? self.startDate!
-        self.scrollToMonth(self.currMonth)
+        self.scrollToMonth(self.currMonth, direct: true)    // 无论如何都更新
     }
     
 }
@@ -224,33 +224,30 @@ private extension CVCalendarView {
    
 
     /// 滚动日历到 month 位置
-    func scrollToMonth(_ month: Date) {
+    @discardableResult
+    func scrollToMonth(_ month: Date, direct: Bool = false) -> Bool {
 
-        if self.startDate == nil || self.endDate == nil { return }
-        if month.isEarlierToDate(self.startDate!, component: .month) || month.isLaterToDate(self.endDate!, component: .month) {
-            return
+        guard self.updateFrame(month: month, direct: direct) else {
+            return false
         }
-        
+
         let indexPath = self.logic.indexPathForMonth(month)
-        
-        // 重新计算view的高度
-        let cellHeight = self.customCellHeight ?? (self.collectionView.frame.width - (self.sectionInset.left + self.sectionInset.right)) / 7
-        let totalHeight: CGFloat = CGFloat(self.logic.numberOfRows(in: month)) * cellHeight + (self.customHeaderHeight ?? height_header)
-        var frame = self.collectionView.superview?.frame
-        frame?.size.height = totalHeight
-        self.collectionView.superview?.frame = frame ?? CGRect.zero
-        self.collectionView.frame = self.collectionView.superview?.bounds ?? CGRect.zero
         
         // 滚动到目标section
         self.collectionView.scrollToItem(at: indexPath, at: [.left], animated: true)
-        
-        self.currMonth = month
+        return true
     }
     
-    func updateFrame(month: Date) {
-        if self.startDate == nil || self.endDate == nil { return }
+    /// 更新某一月份的frame。 directs：直接的，不管是否需要更新，都会重新计算更新
+    @discardableResult
+    func updateFrame(month: Date, direct: Bool = false) -> Bool {
+        if self.startDate == nil || self.endDate == nil { return false }
         if month.isEarlierToDate(self.startDate!, component: .month) || month.isLaterToDate(self.endDate!, component: .month) {
-            return
+            return false
+        }
+        
+        if direct == false && month.isEqualToDate(self.currMonth, component: .day) {
+            return false
         }
         
         // 重新计算view的高度
@@ -262,6 +259,7 @@ private extension CVCalendarView {
         self.collectionView.frame = self.collectionView.superview?.bounds ?? CGRect.zero
         
         self.currMonth = month
+        return true
     }
 }
 
