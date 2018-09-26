@@ -8,13 +8,19 @@
 
 import UIKit
 
-class CVCalendarLayout: UICollectionViewFlowLayout {
+class CVCalendarLayout: UICollectionViewLayout {
     
     /* 公开方法 */
-    /// 自定义的cell高度，如果没有自定义, 则默认：宽=高
-    public var customCellHeight: CGFloat?
-    /// 日历的整体高度是否可变，默认：true，可改变
-    var isAutoHeight = true
+    /// cell的大小尺寸
+    var itemSize: CGSize = CGSize.zero
+    /// headerView的尺寸
+    var headerReferenceSize: CGSize = CGSize.zero
+    /// cell 行之间的距离
+    var minimumLineSpacing: CGFloat = 0
+    /// cell 列之间的距离
+    var minimumInteritemSpacing: CGFloat = 0
+    /// collctionView 的滚动方向
+    var scrollDirection: UICollectionView.ScrollDirection = .vertical
     
     /// 所有cell的布局属性
     private var attrisArr = [UICollectionViewLayoutAttributes]()
@@ -88,7 +94,7 @@ class CVCalendarLayout: UICollectionViewFlowLayout {
         var height: CGFloat = 0
         
         if elementKind == UICollectionElementKindSectionHeader {
-            x = self.sectionInset.left + collectionView.frame.width * CGFloat(indexPath.section)
+            x = collectionView.frame.width * CGFloat(indexPath.section)
             height = self.headerReferenceSize.height
             frame = CGRect(x: x, y: y, width: width, height: height)
             oneAttributes.frame = frame
@@ -115,11 +121,11 @@ class CVCalendarLayout: UICollectionViewFlowLayout {
         if self.scrollDirection == .horizontal {
             
             // 计算每一个cell的宽度
-            width = (collectionView.frame.width - (self.sectionInset.left + self.sectionInset.right)) / 7
-            height = self.customCellHeight ?? width
+            width = self.itemSize.width
+            height = self.itemSize.height
             // 计算每一个cell的原点
-            x = self.sectionInset.left + CGFloat(indexPath.item % 7) * (width + self.minimumInteritemSpacing) + CGFloat(indexPath.section) * collectionView.frame.width
-            y = self.sectionInset.top + CGFloat(indexPath.item / 7) * (height + self.minimumLineSpacing) + self.headerReferenceSize.height
+            x = CGFloat(indexPath.item % 7) * (width + self.minimumInteritemSpacing) + CGFloat(indexPath.section) * collectionView.frame.width
+            y = CGFloat(indexPath.item / 7) * (height + self.minimumLineSpacing) + self.headerReferenceSize.height
             
             // 计算出最新的frame
             frame = CGRect(x: x, y: y, width: width, height: height)

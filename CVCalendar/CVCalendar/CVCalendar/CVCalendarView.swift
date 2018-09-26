@@ -19,7 +19,6 @@ private let color_lunar_festival = UIColor.init(red: 230 / 255, green: 20 / 255,
 private let color_solar_holidy = UIColor.init(red: 230 / 255, green: 20 / 255, blue: 50 / 255, alpha: 1)       // 阳历 节日
 
 
-private let height_header: CGFloat = 60             // headerView的高度
 private let kLineFormat: CGFloat = UIScreen.main.bounds.width / 375.0  // 设计图按照iphone6的尺寸进行设计
 
 
@@ -29,11 +28,9 @@ class CVCalendarView: UIView {
     /// 日历的整体高度是否可变，默认：false，不可改变
     var isAutoHeight: Bool = false
     /// 自定义的cell高度，如果没有自定义, 则默认：宽=高
-    var customCellHeight: CGFloat?
+    var itemHeight: CGFloat = 0
     /// 自定义header的高度，如果没有自定义z，则默认：70.0f
-    var customHeaderHeight: CGFloat?
-    
-    var sectionInset: UIEdgeInsets = UIEdgeInsets.zero
+    var headerHeight: CGFloat = 70
     
     /// 日历滑动方向
     var scrollDirection: UICollectionView.ScrollDirection = .horizontal
@@ -55,6 +52,7 @@ class CVCalendarView: UIView {
     
     /* 私有属性 */
     private var collectionView: UICollectionView?
+    private var layout: CVCalendarLayout = CVCalendarLayout()
     private var firstIndex: Int = 0     // 0-周日，1-周一， ...
     private var logic: CVCalendarLogic!
     private var currMonth: Date!        // 当前显示的month
@@ -102,17 +100,16 @@ class CVCalendarView: UIView {
         self.logic = CVCalendarLogic(startDate: self.startDate!, endDate: self.endDate!)
         
         if self.collectionView == nil {
-            let layout = CVCalendarLayout()
-            layout.itemSize = CGSize(width: frame.width / 7, height: frame.width / 7)
-            layout.headerReferenceSize = CGSize(width: frame.width, height: self.customHeaderHeight ?? height_header)
-            layout.minimumLineSpacing = 0
-            layout.minimumInteritemSpacing = 0
-            layout.sectionInset = self.sectionInset
-            layout.customCellHeight = self.customHeaderHeight
-            layout.isAutoHeight = self.isAutoHeight     // 日历的整体高度是否可变
-            layout.scrollDirection = self.scrollDirection
+            if self.itemHeight == 0 { self.itemHeight = frame.width / 7 }
             
-            self.collectionView = UICollectionView(frame: bounds, collectionViewLayout: layout)
+            self.layout.itemSize = CGSize(width: frame.width / 7, height: self.itemHeight)
+            self.layout.headerReferenceSize = CGSize(width: frame.width, height: self.headerHeight)
+            self.layout.minimumLineSpacing = 0
+            self.layout.minimumInteritemSpacing = 0
+            self.layout.scrollDirection = self.scrollDirection
+            
+            
+            self.collectionView = UICollectionView(frame: bounds, collectionViewLayout: self.layout)
             self.collectionView!.backgroundColor = UIColor.clear
             self.collectionView!.delegate = self
             self.collectionView!.dataSource = self
@@ -276,8 +273,8 @@ private extension CVCalendarView {
         }
         
         // 重新计算view的高度
-        let cellHeight = self.customCellHeight ?? (self.collectionView!.frame.width - (self.sectionInset.left + self.sectionInset.right)) / 7
-        let totalHeight: CGFloat = CGFloat(self.logic.numberOfRows(in: month)) * cellHeight + (self.customHeaderHeight ?? height_header)
+        let cellHeight = self.itemHeight
+        let totalHeight: CGFloat = CGFloat(self.logic.numberOfRows(in: month)) * cellHeight + self.headerHeight
         var frame = self.collectionView!.superview?.frame
         frame?.size.height = totalHeight
         self.collectionView!.superview?.frame = frame ?? CGRect.zero
