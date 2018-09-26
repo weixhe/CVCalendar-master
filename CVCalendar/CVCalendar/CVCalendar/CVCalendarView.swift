@@ -26,8 +26,8 @@ private let kLineFormat: CGFloat = UIScreen.main.bounds.width / 375.0  // 设计
 
 class CVCalendarView: UIView {
     /* 公有属性 */
-    /// 日历的整体高度是否可变，默认：true，可改变
-    var isAutoHeight: Bool = true
+    /// 日历的整体高度是否可变，默认：false，不可改变
+    var isAutoHeight: Bool = false
     /// 自定义的cell高度，如果没有自定义, 则默认：宽=高
     var customCellHeight: CGFloat?
     /// 自定义header的高度，如果没有自定义z，则默认：70.0f
@@ -64,6 +64,7 @@ class CVCalendarView: UIView {
     
     private var currSection: Int = 0
     
+    // MARK: - Methods
     override init(frame: CGRect) {
         super.init(frame: frame)
         self.backgroundColor = UIColor.white
@@ -84,10 +85,6 @@ class CVCalendarView: UIView {
         self.collectionView.dataSource = self
 
         self.collectionView.isPagingEnabled = true
-//        if self.isAutoHeight {
-//            self.collectionView.isUserInteractionEnabled = false
-//            self.collectionView.isScrollEnabled = false
-//        }
         self.collectionView.register(CVCalendarCell.self, forCellWithReuseIdentifier: "CVCalendarCell")
         self.collectionView.register(CVCalendarHeader.self, forSupplementaryViewOfKind: UICollectionElementKindSectionHeader, withReuseIdentifier: "CVCalendarHeader")
         self.addSubview(self.collectionView)
@@ -126,8 +123,30 @@ class CVCalendarView: UIView {
         // 创建逻辑工程
         self.logic = CVCalendarLogic(startDate: self.startDate!, endDate: self.endDate!)
         
-        self.currMonth = self.selectedDate ?? self.startDate!
-        self.scrollToMonth(self.currMonth, direct: true)    // 无论如何都更新
+        // 设置当前时间
+        var isValid = true
+        
+        if let date = self.selectedDate {
+            
+            // 判断 当有区间或部分显示时，selectedDate必须在区间或部分中间
+            if date.isEarlierToDate(self.startDate!, component: .day) || date.isLaterToDate(self.endDate!, component: .day) {
+                isValid = false
+            } else if let parts = self.datePart {
+                for (_, dd) in parts.enumerated() {
+                    if dd.isEqualToDate(date, component: .day) {
+                        isValid = true
+                    } else {
+                        isValid = false
+                    }
+                }
+            }
+            self.currMonth = date
+            if isValid {
+                let indexPath = self.logic.indexPathForDate(date)
+                self.collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [.left])
+            }
+            self.scrollToMonth(self.currMonth, direct: true)    // 无论如何都更新
+        }
     }
     
 }
@@ -182,6 +201,19 @@ extension CVCalendarView : UICollectionViewDelegate, UICollectionViewDataSource 
             subText = model.lunar_day
         }
         
+        // 判断是否是部分显示的日期
+        var isValid = false
+        if let parts = self.datePart {
+            for (_, dd) in parts.enumerated() {
+                if dd.isEqualToDate(model.date, component: .day) {
+                    isValid = true
+                }
+            }
+        }
+        if !isValid {
+            model.dayType = model.dayType.union(.past)
+        }
+        
         cell.subTitleLabel.text = subText
         cell.dayType = model.dayType
         
@@ -189,13 +221,6 @@ extension CVCalendarView : UICollectionViewDelegate, UICollectionViewDataSource 
             cell.isUserInteractionEnabled = false
         } else {
             cell.isUserInteractionEnabled = true
-        }
-        
-        // 设置当前时间
-        if let date = self.selectedDate, date.isEqualToDate(model.date, component: .day) {
-//            cell.isSelected = true
-
-            //            self.collectionView(collectionView, didSelectItemAt: indexPath)
         }
         return cell
     }
@@ -207,11 +232,9 @@ extension CVCalendarView : UICollectionViewDelegate, UICollectionViewDataSource 
             return
         }
         let date = self.logic.calendarModel(indexPath: indexPath).date
-        cell.isSelected = true
         self.delegate?.calendarView?(self, selectDate: date)
         self.selectedDate = date
     }
-    
 }
 
 private extension CVCalendarView {
@@ -241,6 +264,9 @@ private extension CVCalendarView {
     /// 更新某一月份的frame。 directs：直接的，不管是否需要更新，都会重新计算更新
     @discardableResult
     func updateFrame(month: Date, direct: Bool = false) -> Bool {
+        if self.isAutoHeight == false {
+            return false
+        }
         if self.startDate == nil || self.endDate == nil { return false }
         if month.isEarlierToDate(self.startDate!, component: .month) || month.isLaterToDate(self.endDate!, component: .month) {
             return false
@@ -263,7 +289,8 @@ private extension CVCalendarView {
     }
 }
 
-extension CVCalendarView {
+// MARK: - 代理 UIScrollViewDelegate
+extension CVCalendarView : UIScrollViewDelegate {
 
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         self.willMoving = true    // 滑动有效
@@ -283,64 +310,6 @@ extension CVCalendarView {
         }
         self.didMoved = false
     }
-    
-
-    
-    /* 以下方法是通过touch处理滑动的，但是需要处理点击转换事件 */
-    /*
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch: AnyObject in touches {
-            let t: UITouch = touch as! UITouch
-            self.willMoving = true    // 滑动有效
-            self.startContentOffset = t.location(in: self)
-        }
-    }
-
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch: AnyObject in touches {
-            let t: UITouch = touch as! UITouch
-            // 当在屏幕上连续拍动两下时，背景回复为白色
-            if t.tapCount == 2 {
-
-            } else if t.tapCount == 1 {
-                if self.willMoving {
-                    let movePoint = t.location(in: self)
-                    guard let startPoint = self.startContentOffset else { return }
-
-                    if self.scrollDirection == .horizontal {
-                        
-                        if movePoint.x - startPoint.x > 10 { // 向右滑动
-                            self.willMoving = false
-                            self.didMoved = true
-                            self.scrollToMonth(self.currMonth.adding(months: -1))
-                        } else if movePoint.x - startPoint.x < -10 {    // 向左滑动
-                            self.willMoving = false
-                            self.didMoved = true
-                            self.scrollToMonth(self.currMonth.adding(months: 1))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        self.startContentOffset = nil
-        self.willMoving = false
-        if self.didMoved {  // 动作：已经处理了滚动，所以不需要有操作
-            
-        } else {        // 没有滚动操作，处理为点击操作
-            for touch: AnyObject in touches {
-                let t: UITouch = touch as! UITouch
-                
-                let endPoint = t.location(in: self)
-                let point = self.collectionView.convert(endPoint, from: self)
-                print(point)
-            }
-        }
-        self.didMoved = false
-    }
-    */
 }
 
 // MARK: - 日历Item
@@ -349,7 +318,7 @@ class CVCalendarCell: UICollectionViewCell {
     /// 日历是否显示子标题，默认：true，显示
     var isShowSubTitle: Bool = true
     /// 日期类型, 修改文字的颜色
-    var dayType: CVDayType = [.none] { didSet { self.updateColor() } }
+    var dayType: CVDayType = [.empty] { didSet { self.updateColor() } }
     ///
     
     private let height_title: CGFloat = 17
@@ -410,12 +379,8 @@ class CVCalendarCell: UICollectionViewCell {
     override var isSelected: Bool {
         didSet {
             if isSelected {
-//                if self.dayType.contains(.past) || self.dayType.contains(.future) {
-//                    self.selectedView.isHidden = true
-//                } else {
-                    self.selectedView.isHidden = false
-                    self.sendSubview(toBack: self.selectedView)
-//                }
+                self.selectedView.isHidden = false
+                self.sendSubview(toBack: self.selectedView)
             } else {
                 self.selectedView.isHidden = true
             }

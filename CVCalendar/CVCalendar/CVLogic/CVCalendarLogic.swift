@@ -150,7 +150,7 @@ extension CVCalendarLogic {
         var result = ""
         
         // 除夕单独计算，春节的前一天
-        if self.lunar_month(date: date.adding(days: -1)) == "正月" && self.lunar_day(date: date.adding(days: -1)) == "初一" {
+        if self.lunar_month(date: date.adding(days: 1)) == "正月" && self.lunar_day(date: date.adding(days: 1)) == "初一" {
             result = "除夕"
         } else if lunar_month == "正月" && lunar_day == "初一" {
             result = "春节"

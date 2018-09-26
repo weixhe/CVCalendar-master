@@ -12,31 +12,31 @@ struct CVDayType: OptionSet {
 
     var rawValue: UInt
     
-    public static var none = CVDayType(rawValue: 1 << 0)           // 空
+    public static var empty = CVDayType(rawValue: 1 << 0)           // 1-空
     
-    public static var past = CVDayType(rawValue: 1 << 1)           // 过去的日期
-    public static var future = CVDayType(rawValue: 1 << 2)         // 未来的日期
+    public static var past = CVDayType(rawValue: 1 << 1)           // 2-过去的日期
+    public static var future = CVDayType(rawValue: 1 << 2)         // 4-未来的日期
     
-    public static var workday = CVDayType(rawValue: 1 << 3)        // 工作日
-    public static var weekend = CVDayType(rawValue: 1 << 4)        // 周末
+    public static var workday = CVDayType(rawValue: 1 << 3)        // 8-工作日
+    public static var weekend = CVDayType(rawValue: 1 << 4)        // 16-周末
     
-    public static var holiday = CVDayType(rawValue: 1 << 5)        // 节假日
+    public static var holiday = CVDayType(rawValue: 1 << 5)        // 32-节假日
     
-    public static var lunar_festival = CVDayType(rawValue: 1 << 6) // 农历节假日
-    public static var lunar_24_solar_terms = CVDayType(rawValue: 1 << 7) // 农历24节气
-    public static var lunar_initial = CVDayType(rawValue: 1 << 8) // 农历月初，显示月份
+    public static var lunar_festival = CVDayType(rawValue: 1 << 6) // 64-农历节假日
+    public static var lunar_24_solar_terms = CVDayType(rawValue: 1 << 7) // 128-农历24节气
+    public static var lunar_initial = CVDayType(rawValue: 1 << 8) // 256-农历月初，显示月份
 
 
 }
 
 struct CVCalendarModel {
     
-    var dayType: CVDayType = [.none]
+    var dayType: CVDayType = [.empty]
     
     var date: Date {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(secondsFromGMT: 8)        // 东8区, 如果日历出现问题，将时区u去掉
+//        formatter.timeZone = TimeZone(secondsFromGMT: 8)        // 东8区, 如果日历出现问题，将时区u去掉
         return formatter.date(from: "\(self.year)-\(self.month)-\(self.day)")!
     }
     /* 公历 */
@@ -79,6 +79,7 @@ extension CVCalendarModel {
     }
     /// 农历 - 节日
     var lunar_festival: String {
+        
         return CVCalendarLogic.lunar_festival(date: self.date)
     }
     /// 农历 - 24节气

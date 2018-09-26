@@ -21,12 +21,19 @@ extension CVCalendarLogic {
         return self.numberOfRows(in: month)
     }
     
-    /// 返回月份的 indexPath，根据月份
+    /// 返回月份的 indexPath，根据月份，indexPath.row为0
     func indexPathForMonth(_ month: Date) -> IndexPath {
         let num = Date.monthsBetween(from: self.startDate, to: month) - 1
         return IndexPath(item: 0, section: num)
     }
     
+    /// 返回日期的 indexPath, 根据日期， indexPath.row为日期的具体位置
+    func indexPathForDate(_ date: Date) -> IndexPath {
+        let section = Date.monthsBetween(from: self.startDate, to: date) - 1
+        let headPlace: Int = self.headPlaceForMonth(date)
+        let row = headPlace + date.day - 1
+        return IndexPath(row: row, section: section)
+    }
     
     func calendarModel(indexPath: IndexPath) -> CVCalendarModel {
         

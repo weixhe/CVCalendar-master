@@ -58,6 +58,9 @@ extension Date {
     }
     
     init(year: Int, month: Int, day: Int) {
+        if year == 0 || month == 0 || day == 0 {
+            self = Date()
+        }
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         self = formatter.date(from: "\(year)-\(month)-\(day)")!
