@@ -24,6 +24,7 @@ class ViewController: UIViewController, CVCalendarViewDelegate {
         calendar.isShowSubTitle = true
         calendar.selectedDate = date
         calendar.isAutoHeight = false
+        calendar.scrollDirection = .horizontal
         
         
         let date1 = Date.init(year: 2018, month: 9, day: 25)
@@ -53,7 +54,7 @@ class ViewController: UIViewController, CVCalendarViewDelegate {
         calendar.datePart = arr
         self.view.addSubview(calendar)
         
-        calendar.config()
+//        calendar.config()
         
         let btn1 = UIButton(type: .custom)
         btn1.setTitle("日历-横向", for: .normal)

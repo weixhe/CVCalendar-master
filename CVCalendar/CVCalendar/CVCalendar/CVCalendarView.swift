@@ -54,7 +54,7 @@ class CVCalendarView: UIView {
     
     
     /* 私有属性 */
-    private var collectionView: UICollectionView!
+    private var collectionView: UICollectionView?
     private var firstIndex: Int = 0     // 0-周日，1-周一， ...
     private var logic: CVCalendarLogic!
     private var currMonth: Date!        // 当前显示的month
@@ -68,35 +68,13 @@ class CVCalendarView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         self.backgroundColor = UIColor.white
-        
-        let layout = CVCalendarLayout()
-        layout.itemSize = CGSize(width: frame.width / 7, height: frame.width / 7)
-        layout.headerReferenceSize = CGSize(width: frame.width, height: self.customHeaderHeight ?? height_header)
-        layout.minimumLineSpacing = 0
-        layout.minimumInteritemSpacing = 0
-        layout.sectionInset = self.sectionInset
-        layout.customCellHeight = self.customHeaderHeight
-        layout.isAutoHeight = self.isAutoHeight     // 日历的整体高度是否可变
-        layout.scrollDirection = self.scrollDirection
-        
-        self.collectionView = UICollectionView(frame: bounds, collectionViewLayout: layout)
-        self.collectionView.backgroundColor = UIColor.clear
-        self.collectionView.delegate = self
-        self.collectionView.dataSource = self
-
-        self.collectionView.isPagingEnabled = true
-        self.collectionView.register(CVCalendarCell.self, forCellWithReuseIdentifier: "CVCalendarCell")
-        self.collectionView.register(CVCalendarHeader.self, forSupplementaryViewOfKind: UICollectionElementKindSectionHeader, withReuseIdentifier: "CVCalendarHeader")
-        self.addSubview(self.collectionView)
-
     }
-    
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func config() {
-        
+    /// 被添加到父视图
+    override func didMoveToSuperview() {
         if self.startDate == nil && self.datePart == nil {
             assertionFailure("日历控件必须有开始日期，请先赋值 startDate")
         }
@@ -123,6 +101,28 @@ class CVCalendarView: UIView {
         // 创建逻辑工程
         self.logic = CVCalendarLogic(startDate: self.startDate!, endDate: self.endDate!)
         
+        if self.collectionView == nil {
+            let layout = CVCalendarLayout()
+            layout.itemSize = CGSize(width: frame.width / 7, height: frame.width / 7)
+            layout.headerReferenceSize = CGSize(width: frame.width, height: self.customHeaderHeight ?? height_header)
+            layout.minimumLineSpacing = 0
+            layout.minimumInteritemSpacing = 0
+            layout.sectionInset = self.sectionInset
+            layout.customCellHeight = self.customHeaderHeight
+            layout.isAutoHeight = self.isAutoHeight     // 日历的整体高度是否可变
+            layout.scrollDirection = self.scrollDirection
+            
+            self.collectionView = UICollectionView(frame: bounds, collectionViewLayout: layout)
+            self.collectionView!.backgroundColor = UIColor.clear
+            self.collectionView!.delegate = self
+            self.collectionView!.dataSource = self
+            
+            self.collectionView!.isPagingEnabled = true
+            self.collectionView!.register(CVCalendarCell.self, forCellWithReuseIdentifier: "CVCalendarCell")
+            self.collectionView!.register(CVCalendarHeader.self, forSupplementaryViewOfKind: UICollectionElementKindSectionHeader, withReuseIdentifier: "CVCalendarHeader")
+            self.addSubview(self.collectionView!)
+        }
+        
         // 设置当前时间
         var isValid = true
         
@@ -143,12 +143,11 @@ class CVCalendarView: UIView {
             self.currMonth = date
             if isValid {
                 let indexPath = self.logic.indexPathForDate(date)
-                self.collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [.left])
+                self.collectionView!.selectItem(at: indexPath, animated: false, scrollPosition: [.left])
             }
             self.scrollToMonth(self.currMonth, direct: true)    // 无论如何都更新
         }
     }
-    
 }
 
 extension CVCalendarView : UICollectionViewDelegate, UICollectionViewDataSource {
@@ -257,7 +256,7 @@ private extension CVCalendarView {
         let indexPath = self.logic.indexPathForMonth(month)
         
         // 滚动到目标section
-        self.collectionView.scrollToItem(at: indexPath, at: [.left], animated: true)
+        self.collectionView!.scrollToItem(at: indexPath, at: [.left], animated: true)
         return true
     }
     
@@ -277,12 +276,12 @@ private extension CVCalendarView {
         }
         
         // 重新计算view的高度
-        let cellHeight = self.customCellHeight ?? (self.collectionView.frame.width - (self.sectionInset.left + self.sectionInset.right)) / 7
+        let cellHeight = self.customCellHeight ?? (self.collectionView!.frame.width - (self.sectionInset.left + self.sectionInset.right)) / 7
         let totalHeight: CGFloat = CGFloat(self.logic.numberOfRows(in: month)) * cellHeight + (self.customHeaderHeight ?? height_header)
-        var frame = self.collectionView.superview?.frame
+        var frame = self.collectionView!.superview?.frame
         frame?.size.height = totalHeight
-        self.collectionView.superview?.frame = frame ?? CGRect.zero
-        self.collectionView.frame = self.collectionView.superview?.bounds ?? CGRect.zero
+        self.collectionView!.superview?.frame = frame ?? CGRect.zero
+        self.collectionView!.frame = self.collectionView!.superview?.bounds ?? CGRect.zero
         
         self.currMonth = month
         return true
